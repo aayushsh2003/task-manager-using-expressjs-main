@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Simple Task Manager</title>
+  </head>
+  <body>
+    <h1>Task Manager</h1>
+    <ul id="task-list"></ul>
+    <form action="/tasks" method="post">
+      <label for="task-title">New Task:</label>
+      <input type="text" id="task-title" name="title" required />
+      <button type="submit">Add Task</button>
+    </form>
+    <form id="edit-form" style="display: none">
+      <label for="edit-title">Edit Task:</label>
+      <input type="text" id="edit-title" name="title" required />
+      <button type="button" onclick="updateTask()">Update Task</button>
+    </form>
+    <script>
+      fetch('/tasks')
+        .then((response) => response.json())
+        .then((tasks) => {
+          const taskList = document.getElementById('task-list');
+          tasks.forEach((task) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+            <span id="task-title-${task.id}">${task.title}</span>
+            <button onclick="editTask(${task.id})">Edit</button>
+            <button onclick="deleteTask(${task.id})">Delete</button>
+          `;
+            taskList.appendChild(li);
+          });
+        });
+
+      let currentEditTaskId;
+
+      function editTask(id) {
+        const taskTitle = document.getElementById(
+          `task-title-${id}`
+        ).textContent;
+        document.getElementById('edit-title').value = taskTitle;
+        document.getElementById('edit-form').style.display = 'block';
+        document.getElementById('edit-title').focus();
+        currentEditTaskId = id;
+      }
+
+      function updateTask() {
+        const newTitle = document.getElementById('edit-title').value;
+        if (newTitle.trim() !== '') {
+          fetch(`/tasks/${currentEditTaskId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ title: newTitle }),
+          })
+            .then((response) => response.json())
+            .then((updatedTask) => {
+              document.getElementById(
+                `task-title-${currentEditTaskId}`
+              ).textContent = updatedTask.title;
+              document.getElementById('edit-form').style.display = 'none';
+            });
+        }
+      }
+
+      function deleteTask(id) {
+        fetch(`/tasks/${id}`, {
+          method: 'DELETE',
+        }).then(() => {
+          const taskElement = document.getElementById(
+            `task-title-${id}`
+          ).parentElement;
+          taskElement.parentNode.removeChild(taskElement);
+        });
+      }
+    </script>
+  </body>
+</html>
